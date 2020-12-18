@@ -1,0 +1,23 @@
+{
+  "id": "pause-confirm",
+  "name": "PauseConfirm",
+  "version": "0.1.0",
+  "author": "Lauriethefish#6700 (commissioned by gabriella ✨#6859)",
+  "description": [
+    "Makes you confirm before pressing resume or menu when paused."
+  ],
+  "category": "Gameplay",
+  "gameVersion": "1.13.0",
+  "platform": "Quest",
+  "components": [
+    {
+      "type": "HookMod",
+      "installAction": {
+        "installLibraryFile": "libpause-confirm.so"
+      },
+      "uninstallAction": {
+        "removeLibraryFile": "libpause-confirm.so"
+      }
+    }
+  ]
+}
