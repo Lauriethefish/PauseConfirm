@@ -1,4 +1,6 @@
 #include "main.hpp"
+#include "SettingsViewController.hpp"
+using namespace PauseConfirm;
 
 #include "GlobalNamespace/PauseMenuManager.hpp"
 #include "GlobalNamespace/PauseAnimationController.hpp"
@@ -7,6 +9,9 @@ using namespace GlobalNamespace;
 #include "UnityEngine/UI/Button.hpp"
 #include "TMPro/TextMeshProUGUI.hpp"
 using namespace TMPro;
+
+#include "questui/shared/QuestUI.hpp"
+#include "custom-types/shared/register.hpp"
 
 static ModInfo modInfo; // Stores the ID and version of our mod, and is sent to the modloader upon startup
 
@@ -23,6 +28,16 @@ const Logger& getLogger() {
     return logger;
 }
 
+// Creates a default config file if one does not already exist
+void createDefaultConfig() {
+    ConfigDocument& config = getConfig().config;
+    if(!config.HasMember("continue")) {
+        config.AddMember("continue", true, config.GetAllocator());
+        config.AddMember("restart", true, config.GetAllocator());
+        config.AddMember("menu", true, config.GetAllocator());
+        getConfig().Write(); // Save the updated config.
+    }
+}
 std::unordered_map<UnityEngine::UI::Button*, std::string> previousButtonText;
 bool checkConfirmation(UnityEngine::UI::Button* button) {
     getLogger().info("Checking button confirmation status . . .");
@@ -54,25 +69,32 @@ void restoreButtonText() {
     previousButtonText.clear(); // Empty the map - no buttons are overridden
 }
 
-// Make all three buttons in the pause menu require confirmation
+// Make all three buttons in the pause menu require confirmation (if enabled)
 
 MAKE_HOOK_OFFSETLESS(PauseMenuManager_ContinueButtonPressed, void, PauseMenuManager* self) {
-    if(checkConfirmation(self->continueButton)) {
-        PauseMenuManager_ContinueButtonPressed(self);
-    }
+    // Perform the confirmation if we need to
+    bool isConfirmationEnabled = getConfig().config["continue"].GetBool();
+    if(isConfirmationEnabled && !checkConfirmation(self->continueButton)) {return;} // Return if unconfirmed
+    
+    PauseMenuManager_ContinueButtonPressed(self);
 }
 
 MAKE_HOOK_OFFSETLESS(PauseMenuManager_RestartButtonPressed, void, PauseMenuManager* self) {
-    if(checkConfirmation(self->restartButton)) {
-        PauseMenuManager_RestartButtonPressed(self);
-    }
+    // Perform the confirmation if we need to
+    bool isConfirmationEnabled = getConfig().config["restart"].GetBool();
+    if(isConfirmationEnabled && !checkConfirmation(self->restartButton)) {return;} // Return if unconfirmed
+    
+    PauseMenuManager_RestartButtonPressed(self);
 }
 
 MAKE_HOOK_OFFSETLESS(PauseMenuManager_MenuButtonPressed, void, PauseMenuManager* self) {
-    if(checkConfirmation(self->backButton)) {
-        previousButtonText.clear(); // If we go back to the menu, we don't need to worry about changed button text
-        PauseMenuManager_MenuButtonPressed(self);
-    }
+    
+    // Perform the confirmation if we need to
+    bool isConfirmationEnabled = getConfig().config["menu"].GetBool();
+    if(isConfirmationEnabled && !checkConfirmation(self->backButton)) {return;} // Return if unconfirmed
+    
+    previousButtonText.clear(); // If we go back to the menu, we don't need to worry about changed button text
+    PauseMenuManager_MenuButtonPressed(self);
 }
 
 // Change the confirmation text back to default for the next time the pause menu is opened
@@ -89,6 +111,8 @@ extern "C" void setup(ModInfo& info) {
     modInfo = info;
 	
     getConfig().Load(); // Load the config file
+    createDefaultConfig();
+
     getLogger().info("Completed setup!");
 }
 
@@ -96,8 +120,12 @@ extern "C" void setup(ModInfo& info) {
 extern "C" void load() {
     il2cpp_functions::Init();
 
-    getLogger().info("Installing hooks...");
+    QuestUI::Init(); // Register QuestUI types/other stuff
+    custom_types::Register::RegisterType<SettingsViewController>(); // Register the custom ViewController for our mod settings menu
 
+    QuestUI::Register::RegisterModSettingsViewController<SettingsViewController*>(modInfo); // Make QuestUI show it as an option in mod settings
+
+    getLogger().info("Installing hooks...");
     // Install our hooks
     INSTALL_HOOK_OFFSETLESS(PauseMenuManager_ContinueButtonPressed,
                 il2cpp_utils::FindMethodUnsafe("", "PauseMenuManager", "ContinueButtonPressed", 0));

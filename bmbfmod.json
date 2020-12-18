@@ -18,6 +18,18 @@
       "uninstallAction": {
         "removeLibraryFile": "libpause-confirm.so"
       }
+    },
+    {
+      "type": "HookModLibrary",
+      "installAction": {
+        "installLibraryFile": "libquestui.so"
+      }
+    },
+    {
+      "type": "HookModLibrary",
+      "installAction": {
+        "installLibraryFile": "libcustom-types.so"
+      }
     }
   ]
 }
