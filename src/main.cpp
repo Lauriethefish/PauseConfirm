@@ -84,6 +84,7 @@ MAKE_HOOK_OFFSETLESS(PauseMenuManager_RestartButtonPressed, void, PauseMenuManag
     bool isConfirmationEnabled = getConfig().config["restart"].GetBool();
     if(isConfirmationEnabled && !checkConfirmation(self->restartButton)) {return;} // Return if unconfirmed
     
+    previousButtonText.clear(); // If we restart the song, we don't need to worry about changed button text
     PauseMenuManager_RestartButtonPressed(self);
 }
 
