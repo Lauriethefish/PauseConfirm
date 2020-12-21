@@ -1,7 +1,7 @@
 {
   "id": "pause-confirm",
   "name": "PauseConfirm",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Lauriethefish#6700 (commissioned by gabriella ✨#6859)",
   "description": [
     "Makes you confirm before pressing resume or menu when paused."
