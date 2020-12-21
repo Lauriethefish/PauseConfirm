@@ -9,6 +9,11 @@
 #include "beatsaber-hook/shared/config/config-utils.hpp"
 #include "beatsaber-hook/shared/utils/il2cpp-functions.hpp"
 
+#include "GlobalNamespace/OVRInput_Button.hpp"
+using namespace GlobalNamespace;
+
 // Define these functions here so that we can easily read configuration and log information from other files
 Configuration& getConfig();
 const Logger& getLogger();
+
+std::unordered_map<int, std::string> getButtonNames();

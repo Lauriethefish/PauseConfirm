@@ -1,12 +1,21 @@
+#define RAPIDJSON_HAS_STDSTRING 1 // Enable rapidjson's support for std::string
+
 #include "main.hpp"
 #include "SettingsViewController.hpp"
 using namespace PauseConfirm;
 
 #include "GlobalNamespace/PauseMenuManager.hpp"
+#include "GlobalNamespace/PauseController.hpp"
 #include "GlobalNamespace/PauseAnimationController.hpp"
 using namespace GlobalNamespace;
 
 #include "UnityEngine/UI/Button.hpp"
+#include "UnityEngine/Resources.hpp"
+#include "GlobalNamespace/OVRInput.hpp"
+#include "GlobalNamespace/OVRInput_Button.hpp"
+#include "GlobalNamespace/OVRPlayerController.hpp"
+using namespace UnityEngine::XR;
+
 #include "TMPro/TextMeshProUGUI.hpp"
 using namespace TMPro;
 
@@ -28,6 +37,18 @@ const Logger& getLogger() {
     return logger;
 }
 
+static std::unordered_map<int, std::string> buttonNames = {
+    {OVRInput::Button::PrimaryIndexTrigger, "Trigger"},
+    {OVRInput::Button::PrimaryThumbstick, "Thumbstick Click"},
+    {OVRInput::Button::Start, "Menu Button"},
+    {OVRInput::Button::Four, "Y Button"},
+    {OVRInput::Button::Three, "X Button"}
+};
+
+std::unordered_map<int, std::string> getButtonNames() {
+    return buttonNames;
+}
+
 // Creates a default config file if one does not already exist
 void createDefaultConfig() {
     ConfigDocument& config = getConfig().config;
@@ -35,9 +56,31 @@ void createDefaultConfig() {
         config.AddMember("continue", true, config.GetAllocator());
         config.AddMember("restart", true, config.GetAllocator());
         config.AddMember("menu", true, config.GetAllocator());
+    }
+
+    // Second HasMember block since these options are new
+    if(!config.HasMember("overridePauseButtons")) {
+        config.AddMember("overridePauseButtons", false, config.GetAllocator());
+
+        rapidjson::Value pauseButtonRequirements;
+        pauseButtonRequirements.SetObject();
+        // Add an option for each button name that we support
+        for(auto& button : buttonNames) {
+            pauseButtonRequirements.AddMember(rapidjson::Value().SetString(button.second, config.GetAllocator()), false, config.GetAllocator());
+        }
+        config.AddMember("pauseButtons", pauseButtonRequirements, config.GetAllocator());
+
         getConfig().Write(); // Save the updated config.
     }
 }
+
+MAKE_HOOK_OFFSETLESS(PauseController_HandleMenuButtonTriggered, void, PauseController* self) {
+    //OVRInput::Get(OVRInput::Axis1D::PrimaryIndexTrigger, OVRInput::Controller::LTouch);
+
+    PauseController_HandleMenuButtonTriggered(self);
+}
+
+
 std::unordered_map<UnityEngine::UI::Button*, std::string> previousButtonText;
 bool checkConfirmation(UnityEngine::UI::Button* button) {
     getLogger().info("Checking button confirmation status . . .");
@@ -89,13 +132,54 @@ MAKE_HOOK_OFFSETLESS(PauseMenuManager_RestartButtonPressed, void, PauseMenuManag
 }
 
 MAKE_HOOK_OFFSETLESS(PauseMenuManager_MenuButtonPressed, void, PauseMenuManager* self) {
-    
     // Perform the confirmation if we need to
     bool isConfirmationEnabled = getConfig().config["menu"].GetBool();
     if(isConfirmationEnabled && !checkConfirmation(self->backButton)) {return;} // Return if unconfirmed
     
     previousButtonText.clear(); // If we go back to the menu, we don't need to worry about changed button text
     PauseMenuManager_MenuButtonPressed(self);
+}
+
+static bool hasInducedPause = false;
+MAKE_HOOK_OFFSETLESS(GameSongController_LateUpdate, void, OVRPlayerController* self) {
+    GameSongController_LateUpdate(self);
+    if(!getConfig().config["overridePauseButtons"].GetBool()) {return;} // If overriding the pause buttons is disabled return
+    getLogger().info("Checking that all required buttons are down . . .");
+    // Check that all buttons required to pause are down
+    bool allDown = true;
+    for(auto pair : buttonNames) {
+        if(!getConfig().config["pauseButtons"][pair.second].GetBool()) {continue;} // Check that this button is required
+
+        bool isDown = OVRInput::Get((OVRInput::Button)pair.first, OVRInput::Controller::LTouch);
+
+        if(!isDown) {
+            allDown = false;
+            break;
+        }
+    }
+
+    // Pause the game if all buttons required to pause are down
+    if(allDown) {
+        getLogger().info("Pausing game as they were all down . . .");
+        Array<PauseController*>* controllers = UnityEngine::Resources::FindObjectsOfTypeAll<PauseController*>();
+        if(controllers->Length() == 0) {return;} // If we're in the menu, there isn't a PauseController
+        hasInducedPause = true;
+        reinterpret_cast<PauseController*>(controllers->GetValue(0))->Pause();
+    }
+}
+
+MAKE_HOOK_OFFSETLESS(PauseController_Pause, void, PauseController* self) {
+    // If overriding the pause buttons is disabled, don't do anything
+    if(!getConfig().config["overridePauseButtons"].GetBool()) {
+        PauseController_Pause(self);
+        return;
+    }
+
+    // Only allow the pause if the method above has induced it, since otherwise pausing with the menu button would still work
+    if(hasInducedPause) {
+        hasInducedPause = false;
+        PauseController_Pause(self);
+    }
 }
 
 // Change the confirmation text back to default for the next time the pause menu is opened
@@ -123,6 +207,7 @@ extern "C" void load() {
 
     QuestUI::Init(); // Register QuestUI types/other stuff
     custom_types::Register::RegisterType<SettingsViewController>(); // Register the custom ViewController for our mod settings menu
+    custom_types::Register::RegisterType<PauseOverrideClickData>();
 
     QuestUI::Register::RegisterModSettingsViewController<SettingsViewController*>(modInfo); // Make QuestUI show it as an option in mod settings
 
@@ -136,5 +221,9 @@ extern "C" void load() {
                 il2cpp_utils::FindMethodUnsafe("", "PauseMenuManager", "MenuButtonPressed", 0));
     INSTALL_HOOK_OFFSETLESS(PauseAnimationController_ResumeFromPauseAnimationDidFinish,
                 il2cpp_utils::FindMethodUnsafe("", "PauseAnimationController", "ResumeFromPauseAnimationDidFinish", 0));
+    INSTALL_HOOK_OFFSETLESS(GameSongController_LateUpdate, 
+                il2cpp_utils::FindMethodUnsafe("", "GameSongController", "LateUpdate", 0));
+    INSTALL_HOOK_OFFSETLESS(PauseController_Pause,
+                il2cpp_utils::FindMethodUnsafe("", "PauseController", "Pause", 0));
     getLogger().info("Installed all hooks!");
 }
