@@ -34,6 +34,11 @@ void onPauseButtonsOverrideSettingChange(SettingsViewController* self, bool newV
     self->UpdateButtonsLayoutVisibility(); // Hide/show the layout if necessary
 }
 
+void onUseRightControllerSettingChange(SettingsViewController* self, bool newValue) {
+    getConfig().config["pauseWithRightController"] = newValue;
+    getLogger().info("Right controller setting change.");
+}
+
 void onButtonRequiredToPauseSettingChange(PauseOverrideClickData* data, bool newValue) {
     std::string buttonName = to_utf8(csstrtostr(data->buttonChanged));
     getLogger().info("Button with name " + buttonName + " change.");
@@ -54,7 +59,6 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     confirmationLayout->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
     confirmationLayout->get_gameObject()->AddComponent<Backgroundable*>()->ApplyBackground(il2cpp_utils::createcsstr("round-rect-panel"));
     confirmationLayout->set_padding(UnityEngine::RectOffset::New_ctor(2, 2, 2, 2));
-    confirmationLayout->set_spacing(1.0);
 
     BeatSaberUI::CreateText(confirmationLayout->get_rectTransform(), "Pause menu confirmation");
     // Create 3 toggles for each button in the pause menu, making sure to set the current value in the config to each toggle.
@@ -71,18 +75,20 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     buttonSectionLayout->set_childForceExpandHeight(false);
     buttonSectionLayout->get_gameObject()->AddComponent<Backgroundable*>()->ApplyBackground(il2cpp_utils::createcsstr("round-rect-panel"));
     buttonSectionLayout->set_padding(UnityEngine::RectOffset::New_ctor(2, 2, 2, 2));
-    buttonSectionLayout->set_spacing(1.0);
 
     getLogger().info("Creating buttons section layouts . . .");
     // Create a toggle for enabling/disabling the pause buttons override
     BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Override Pause Buttons", getConfig().config["overridePauseButtons"].GetBool(),
              il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onPauseButtonsOverrideSettingChange));
 
+    // Create toggle for choosing to pause with your right controller
+    BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Pause with Right Controller", getConfig().config["pauseWithRightController"].GetBool(),
+             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onUseRightControllerSettingChange));
+
     VerticalLayoutGroup* buttonsLayout = BeatSaberUI::CreateVerticalLayoutGroup(buttonSectionLayout->get_rectTransform());
     buttonsLayout->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
     buttonsLayout->set_childControlHeight(true);
     buttonsLayout->set_childForceExpandHeight(false);
-    buttonsLayout->set_spacing(1.0);
     // Create toggle for each button that can be used to pause the game.
     for(auto& pair : getButtonNames()) {
         getLogger().info("Adding button to list . . .");

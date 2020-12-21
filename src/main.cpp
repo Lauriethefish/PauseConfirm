@@ -72,14 +72,11 @@ void createDefaultConfig() {
 
         getConfig().Write(); // Save the updated config.
     }
+
+    if(!config.HasMember("pauseWithRightController")) {
+        config.AddMember("pauseWithRightController", false, config.GetAllocator());
+    }
 }
-
-MAKE_HOOK_OFFSETLESS(PauseController_HandleMenuButtonTriggered, void, PauseController* self) {
-    //OVRInput::Get(OVRInput::Axis1D::PrimaryIndexTrigger, OVRInput::Controller::LTouch);
-
-    PauseController_HandleMenuButtonTriggered(self);
-}
-
 
 std::unordered_map<UnityEngine::UI::Button*, std::string> previousButtonText;
 bool checkConfirmation(UnityEngine::UI::Button* button) {
@@ -150,7 +147,9 @@ MAKE_HOOK_OFFSETLESS(GameSongController_LateUpdate, void, OVRPlayerController* s
     for(auto pair : buttonNames) {
         if(!getConfig().config["pauseButtons"][pair.second].GetBool()) {continue;} // Check that this button is required
 
-        bool isDown = OVRInput::Get((OVRInput::Button)pair.first, OVRInput::Controller::LTouch);
+        // Make sure to use the correct controller
+        bool useRightController = getConfig().config["pauseWithRightController"].GetBool();
+        bool isDown = OVRInput::Get((OVRInput::Button)pair.first, useRightController ? OVRInput::Controller::RTouch : OVRInput::Controller::LTouch);
 
         if(!isDown) {
             allDown = false;
