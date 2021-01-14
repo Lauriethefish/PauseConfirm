@@ -32,9 +32,9 @@ Configuration& getConfig() {
 }
 
 // Returns a logger, useful for printing debug messages
-const Logger& getLogger() {
-    static const Logger logger(modInfo);
-    return logger;
+Logger& getLogger() {
+    static Logger* logger = new Logger(modInfo);
+    return *logger;
 }
 
 static std::unordered_map<int, std::string> buttonNames = {
@@ -42,7 +42,7 @@ static std::unordered_map<int, std::string> buttonNames = {
     {OVRInput::Button::PrimaryThumbstick, "Thumbstick Click"},
     {OVRInput::Button::Start, "Menu Button"},
     {OVRInput::Button::Four, "Y Button"},
-    {OVRInput::Button::Three, "X Button"}
+    {OVRInput::Button::Three, "X Button"},
 };
 
 std::unordered_map<int, std::string> getButtonNames() {
@@ -61,17 +61,29 @@ void createDefaultConfig() {
     // Second HasMember block since these options are new
     if(!config.HasMember("overridePauseButtons")) {
         config.AddMember("overridePauseButtons", false, config.GetAllocator());
-
-        rapidjson::Value pauseButtonRequirements;
-        pauseButtonRequirements.SetObject();
-        // Add an option for each button name that we support
-        for(auto& button : buttonNames) {
-            pauseButtonRequirements.AddMember(rapidjson::Value().SetString(button.second, config.GetAllocator()), false, config.GetAllocator());
-        }
-        config.AddMember("pauseButtons", pauseButtonRequirements, config.GetAllocator());
-
-        getConfig().Write(); // Save the updated config.
     }
+
+    rapidjson::Value pauseButtonRequirements;
+    if(config.HasMember("pauseButtons")) {
+        pauseButtonRequirements = config["pauseButtons"];
+    }   else    {
+        pauseButtonRequirements.SetObject();
+    }
+
+    // Add an option for each button name that we support
+    for(auto& button : buttonNames) {
+        rapidjson::Value buttonName;
+        buttonName.SetString(button.second, config.GetAllocator());
+
+        // Add the button if it doesn't exist
+        if(!pauseButtonRequirements.HasMember(buttonName)) {
+            pauseButtonRequirements.AddMember(buttonName, false, config.GetAllocator());
+        }
+    }
+    config.RemoveMember("pauseButtons");
+    config.AddMember("pauseButtons", pauseButtonRequirements, config.GetAllocator());
+
+    getConfig().Write(); // Save the updated config.
 
     if(!config.HasMember("pauseWithRightController")) {
         config.AddMember("pauseWithRightController", false, config.GetAllocator());
@@ -212,17 +224,17 @@ extern "C" void load() {
 
     getLogger().info("Installing hooks...");
     // Install our hooks
-    INSTALL_HOOK_OFFSETLESS(PauseMenuManager_ContinueButtonPressed,
+    INSTALL_HOOK_OFFSETLESS(getLogger(), PauseMenuManager_ContinueButtonPressed,
                 il2cpp_utils::FindMethodUnsafe("", "PauseMenuManager", "ContinueButtonPressed", 0));
-    INSTALL_HOOK_OFFSETLESS(PauseMenuManager_RestartButtonPressed,
+    INSTALL_HOOK_OFFSETLESS(getLogger(), PauseMenuManager_RestartButtonPressed,
                 il2cpp_utils::FindMethodUnsafe("", "PauseMenuManager", "RestartButtonPressed", 0));
-    INSTALL_HOOK_OFFSETLESS(PauseMenuManager_MenuButtonPressed, 
+    INSTALL_HOOK_OFFSETLESS(getLogger(), PauseMenuManager_MenuButtonPressed, 
                 il2cpp_utils::FindMethodUnsafe("", "PauseMenuManager", "MenuButtonPressed", 0));
-    INSTALL_HOOK_OFFSETLESS(PauseAnimationController_ResumeFromPauseAnimationDidFinish,
+    INSTALL_HOOK_OFFSETLESS(getLogger(), PauseAnimationController_ResumeFromPauseAnimationDidFinish,
                 il2cpp_utils::FindMethodUnsafe("", "PauseAnimationController", "ResumeFromPauseAnimationDidFinish", 0));
-    INSTALL_HOOK_OFFSETLESS(GameSongController_LateUpdate, 
+    INSTALL_HOOK_OFFSETLESS(getLogger(), GameSongController_LateUpdate, 
                 il2cpp_utils::FindMethodUnsafe("", "GameSongController", "LateUpdate", 0));
-    INSTALL_HOOK_OFFSETLESS(PauseController_Pause,
+    INSTALL_HOOK_OFFSETLESS(getLogger(), PauseController_Pause,
                 il2cpp_utils::FindMethodUnsafe("", "PauseController", "Pause", 0));
     getLogger().info("Installed all hooks!");
 }

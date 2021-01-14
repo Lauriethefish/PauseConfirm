@@ -1,7 +1,7 @@
 {
   "id": "pause-confirm",
   "name": "PauseConfirm",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Lauriethefish#6700 (commissioned by gabriella ✨#6859)",
   "description": [
     "Makes you confirm before pressing resume or menu when paused."
@@ -17,6 +17,18 @@
       },
       "uninstallAction": {
         "removeLibraryFile": "libpause-confirm.so"
+      }
+    },
+    {
+      "type": "HookModLibrary",
+      "installAction": {
+        "installLibraryFile": "libbeatsaber-hook_1_0_9.so"
+      }
+    },
+    {
+      "type": "HookModLibrary",
+      "installAction": {
+        "installLibraryFile": "libcodegen_0_5_3.so"
       }
     },
     {

@@ -1,0 +1,11 @@
+{
+    "continue": true,
+    "restart": true,
+    "menu": true,
+    "overridePauseButtons": true,
+    "pauseButtons": {
+        "Thumbstick Click": false,
+        "Grip": true,
+        "Trigger": false
+    }
+}
