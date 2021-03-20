@@ -2,5 +2,5 @@
 & $PSScriptRoot/build.ps1
 
 if ($?) {
-    Compress-Archive -Path "./libs/arm64-v8a/libpause-confirm.so", "./bmbfmod.json" -DestinationPath "./pause-confirm_v0.2.1.zip" -Update
+    Compress-Archive -Path "./libs/arm64-v8a/libpause-confirm.so", "./bmbfmod.json" -DestinationPath "./pause-confirm_v0.2.2.zip" -Update
 }
