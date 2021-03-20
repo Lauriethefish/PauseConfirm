@@ -16,15 +16,15 @@ DEFINE_CLASS(SettingsViewController);
 DEFINE_CLASS(PauseOverrideClickData);
 
 // Create 3 methods for when each of our settings changes
-void onContinueSettingChange(SettingsViewController* self, bool newValue) {
+void onContinueSettingChange(bool newValue) {
     getConfig().config["continue"] = newValue;
 }
 
-void onRestartSettingChange(SettingsViewController* self, bool newValue) {
+void onRestartSettingChange(bool newValue) {
     getConfig().config["restart"] = newValue;
 }
 
-void onMenuSettingChange(SettingsViewController* self, bool newValue) {
+void onMenuSettingChange(bool newValue) {
     getConfig().config["menu"] = newValue;
 }
 
@@ -34,7 +34,7 @@ void onPauseButtonsOverrideSettingChange(SettingsViewController* self, bool newV
     self->UpdateButtonsLayoutVisibility(); // Hide/show the layout if necessary
 }
 
-void onUseRightControllerSettingChange(SettingsViewController* self, bool newValue) {
+void onUseRightControllerSettingChange(bool newValue) {
     getConfig().config["pauseWithRightController"] = newValue;
     getLogger().info("Right controller setting change.");
 }
@@ -63,11 +63,11 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     BeatSaberUI::CreateText(confirmationLayout->get_rectTransform(), "Pause menu confirmation");
     // Create 3 toggles for each button in the pause menu, making sure to set the current value in the config to each toggle.
     BeatSaberUI::CreateToggle(confirmationLayout->get_rectTransform(), "Enable confirmation on continue button", getConfig().config["continue"].GetBool(),
-             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onContinueSettingChange));
+             onContinueSettingChange);
     BeatSaberUI::CreateToggle(confirmationLayout->get_rectTransform(), "Enable confirmation on restart button", getConfig().config["restart"].GetBool(),
-             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onRestartSettingChange));
+             onRestartSettingChange);
     BeatSaberUI::CreateToggle(confirmationLayout->get_rectTransform(), "Enable confirmation on menu button", getConfig().config["menu"].GetBool(),
-             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onMenuSettingChange));
+             onMenuSettingChange);
 
     VerticalLayoutGroup* buttonSectionLayout = BeatSaberUI::CreateVerticalLayoutGroup(layout->get_rectTransform());
     buttonSectionLayout->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
@@ -79,11 +79,16 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     getLogger().info("Creating buttons section layouts . . .");
     // Create a toggle for enabling/disabling the pause buttons override
     BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Override Pause Buttons", getConfig().config["overridePauseButtons"].GetBool(),
-             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onPauseButtonsOverrideSettingChange));
+        [this](bool newValue) {
+            onPauseButtonsOverrideSettingChange(this, newValue);
+        }
+    );
 
     // Create toggle for choosing to pause with your right controller
-    BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Pause with Right Controller", getConfig().config["pauseWithRightController"].GetBool(),
-             il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), this, onUseRightControllerSettingChange));
+    BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Pause with Right Controller",
+            getConfig().config["pauseWithRightController"].GetBool(),
+            onUseRightControllerSettingChange
+    );
 
     VerticalLayoutGroup* buttonsLayout = BeatSaberUI::CreateVerticalLayoutGroup(buttonSectionLayout->get_rectTransform());
     buttonsLayout->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
@@ -96,8 +101,10 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
         PauseOverrideClickData* data = CRASH_UNLESS(il2cpp_utils::New<PauseOverrideClickData*>());
         data->buttonChanged = il2cpp_utils::createcsstr(pair.second);
 
-        BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), pair.second, getConfig().config["pauseButtons"][pair.second].GetBool(),
-                 il2cpp_utils::MakeDelegate<UnityAction_1<bool>*>(classof(UnityAction_1<bool>*), data, onButtonRequiredToPauseSettingChange));
+        BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), pair.second,
+                getConfig().config["pauseButtons"][pair.second].GetBool(),
+                [data](bool newValue) {onButtonRequiredToPauseSettingChange(data, newValue);}
+        );
     }
 
     this->buttonsObject = buttonsLayout->get_gameObject();
