@@ -13,7 +13,6 @@ using namespace UnityEngine::UI;
 using namespace UnityEngine::Events;
 
 DEFINE_CLASS(SettingsViewController);
-DEFINE_CLASS(PauseOverrideClickData);
 
 // Create 3 methods for when each of our settings changes
 void onContinueSettingChange(bool newValue) {
@@ -39,8 +38,7 @@ void onUseRightControllerSettingChange(bool newValue) {
     getLogger().info("Right controller setting change.");
 }
 
-void onButtonRequiredToPauseSettingChange(PauseOverrideClickData* data, bool newValue) {
-    std::string buttonName = to_utf8(csstrtostr(data->buttonChanged));
+void onButtonRequiredToPauseSettingChange(std::string buttonName, bool newValue) {
     getLogger().info("Button with name " + buttonName + " change.");
     getConfig().config["pauseButtons"][buttonName] = newValue;
 }
@@ -98,12 +96,11 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     for(auto& pair : getButtonNames()) {
         getLogger().info("Adding button to list . . .");
         // Make the PauseOverrideClickData to send the correct info to the delegate
-        PauseOverrideClickData* data = CRASH_UNLESS(il2cpp_utils::New<PauseOverrideClickData*>());
-        data->buttonChanged = il2cpp_utils::createcsstr(pair.second);
+        std::string buttonName = pair.second;
 
-        BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), pair.second,
-                getConfig().config["pauseButtons"][pair.second].GetBool(),
-                [data](bool newValue) {onButtonRequiredToPauseSettingChange(data, newValue);}
+        BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), buttonName,
+                getConfig().config["pauseButtons"][buttonName].GetBool(),
+                [buttonName](bool newValue) {onButtonRequiredToPauseSettingChange(buttonName, newValue);}
         );
     }
 

@@ -18,11 +18,3 @@ DECLARE_CLASS_CODEGEN(PauseConfirm, SettingsViewController, HMUI::ViewController
         REGISTER_FIELD(buttonsObject);
     )
 );
-
-DECLARE_CLASS_CODEGEN(PauseConfirm, PauseOverrideClickData, Il2CppObject,
-    DECLARE_INSTANCE_FIELD(Il2CppString*, buttonChanged);
-
-    REGISTER_FUNCTION(PauseOverrideClickData,
-        REGISTER_FIELD(buttonChanged);
-    )
-);

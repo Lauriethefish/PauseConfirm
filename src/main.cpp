@@ -218,7 +218,6 @@ extern "C" void load() {
 
     QuestUI::Init(); // Register QuestUI types/other stuff
     custom_types::Register::RegisterType<SettingsViewController>(); // Register the custom ViewController for our mod settings menu
-    custom_types::Register::RegisterType<PauseOverrideClickData>();
 
     QuestUI::Register::RegisterModSettingsViewController<SettingsViewController*>(modInfo); // Make QuestUI show it as an option in mod settings
 
