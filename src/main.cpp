@@ -75,9 +75,13 @@ void createDefaultConfig() {
         rapidjson::Value buttonName;
         buttonName.SetString(button.second, config.GetAllocator());
 
+        getLogger().info("Button name: " + button.second);
         // Add the button if it doesn't exist
         if(!pauseButtonRequirements.HasMember(buttonName)) {
-            pauseButtonRequirements.AddMember(buttonName, false, config.GetAllocator());
+            bool enabledByDefault = button.second == "Menu Button";
+            getLogger().info(string_format("Is enabled by default: %d", enabledByDefault));
+
+            pauseButtonRequirements.AddMember(buttonName, enabledByDefault, config.GetAllocator());
         }
     }
     config.RemoveMember("pauseButtons");
