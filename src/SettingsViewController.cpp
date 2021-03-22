@@ -50,6 +50,8 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     // Align the three settings to the top centre with a VerticalLayoutGroup
     VerticalLayoutGroup* layout = BeatSaberUI::CreateVerticalLayoutGroup(get_rectTransform());
     layout->set_spacing(1.0);
+    layout->set_childControlHeight(true);
+    layout->set_childForceExpandHeight(false);
 
     VerticalLayoutGroup* confirmationLayout = BeatSaberUI::CreateVerticalLayoutGroup(layout->get_rectTransform());
     confirmationLayout->set_childControlHeight(true);
@@ -88,9 +90,11 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
             onUseRightControllerSettingChange
     );
 
-    VerticalLayoutGroup* buttonsLayout = BeatSaberUI::CreateVerticalLayoutGroup(buttonSectionLayout->get_rectTransform());
+    VerticalLayoutGroup* buttonsLayout = BeatSaberUI::CreateVerticalLayoutGroup(layout->get_rectTransform());
+    buttonsLayout->get_gameObject()->AddComponent<Backgroundable*>()->ApplyBackground(il2cpp_utils::createcsstr("round-rect-panel"));
     buttonsLayout->set_childAlignment(UnityEngine::TextAnchor::UpperCenter);
     buttonsLayout->set_childControlHeight(true);
+    buttonsLayout->set_padding(UnityEngine::RectOffset::New_ctor(2, 2, 2, 2));
     buttonsLayout->set_childForceExpandHeight(false);
     // Create toggle for each button that can be used to pause the game.
     for(auto& pair : getButtonNames()) {
@@ -111,7 +115,7 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
 void SettingsViewController::UpdateButtonsLayoutVisibility() {
     bool isVisible = getConfig().config["overridePauseButtons"].GetBool();
 
-    //buttonsObject->SetActive(false);
+    buttonsObject->SetActive(isVisible);
 }
 
 // Save the config upon leaving the settings menu
