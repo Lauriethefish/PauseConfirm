@@ -12,6 +12,9 @@ using namespace QuestUI;
 using namespace UnityEngine::UI;
 using namespace UnityEngine::Events;
 
+#include "TMPro/TextMeshProUGUI.hpp"
+using namespace TMPro;
+
 DEFINE_CLASS(SettingsViewController);
 
 // Create 3 methods for when each of our settings changes
@@ -30,12 +33,13 @@ void onMenuSettingChange(bool newValue) {
 void onPauseButtonsOverrideSettingChange(SettingsViewController* self, bool newValue) {
     getConfig().config["overridePauseButtons"] = newValue;
     getLogger().info("Override status change.");
-    self->UpdateButtonsLayoutVisibility(); // Hide/show the layout if necessary
+    self->UpdateButtonsLayout(); // Hide/show the layout if necessary
 }
 
-void onUseRightControllerSettingChange(bool newValue) {
+void onUseRightControllerSettingChange(SettingsViewController* self, bool newValue) {
     getConfig().config["pauseWithRightController"] = newValue;
     getLogger().info("Right controller setting change.");
+    self->UpdateButtonsLayout(); // Hide/show the layout if necessary
 }
 
 void onButtonRequiredToPauseSettingChange(std::string buttonName, bool newValue) {
@@ -87,7 +91,7 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
     // Create toggle for choosing to pause with your right controller
     BeatSaberUI::CreateToggle(buttonSectionLayout->get_rectTransform(), "Pause with Right Controller",
             getConfig().config["pauseWithRightController"].GetBool(),
-            onUseRightControllerSettingChange
+            [this](bool newValue) {onUseRightControllerSettingChange(this, newValue);}
     );
 
     VerticalLayoutGroup* buttonsLayout = BeatSaberUI::CreateVerticalLayoutGroup(layout->get_rectTransform());
@@ -102,20 +106,40 @@ void SettingsViewController::DidActivate(bool firstActivation, bool addedToHiera
         // Make the PauseOverrideClickData to send the correct info to the delegate
         std::string buttonName = pair.second;
 
-        BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), buttonName,
+        UnityEngine::UI::Toggle* toggle = BeatSaberUI::CreateToggle(buttonsLayout->get_rectTransform(), buttonName,
                 getConfig().config["pauseButtons"][buttonName].GetBool(),
                 [buttonName](bool newValue) {onButtonRequiredToPauseSettingChange(buttonName, newValue);}
         );
+
+        if(buttonName == "X Button") {
+            firstButtonSetting = toggle;
+        }   else if(buttonName == "Y Button") {
+            secondButtonSetting = toggle;
+        }
     }
 
     this->buttonsObject = buttonsLayout->get_gameObject();
-    UpdateButtonsLayoutVisibility(); // Hide the buttons layout if overridding pause buttons is not enabled
+    UpdateButtonsLayout(); // Hide the buttons layout if overridding pause buttons is not enabled
 }
 
-void SettingsViewController::UpdateButtonsLayoutVisibility() {
+// Changes the text of toggle to newText
+void changeText(UnityEngine::UI::Toggle* toggle, std::string newText) {
+    TextMeshProUGUI* textMesh = toggle->get_gameObject()->get_transform()->GetParent()->get_gameObject()->GetComponentInChildren<TextMeshProUGUI*>(); // Takes a bit of effort to find the actual text mesh for the text, not the 0 or 1
+    textMesh->set_text(il2cpp_utils::createcsstr(newText));
+}
+
+void SettingsViewController::UpdateButtonsLayout() {
     bool isVisible = getConfig().config["overridePauseButtons"].GetBool();
 
     buttonsObject->SetActive(isVisible);
+
+    if(getConfig().config["pauseWithRightController"].GetBool()) {
+        changeText(firstButtonSetting, "A Button");
+        changeText(secondButtonSetting, "B Button");
+    }   else    {
+        changeText(firstButtonSetting, "X Button");
+        changeText(secondButtonSetting, "Y Button");
+    }
 }
 
 // Save the config upon leaving the settings menu

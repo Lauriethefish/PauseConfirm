@@ -37,15 +37,15 @@ Logger& getLogger() {
     return *logger;
 }
 
-static std::unordered_map<int, std::string> buttonNames = {
+static std::map<int, std::string> buttonNames = {
     {OVRInput::Button::PrimaryIndexTrigger, "Trigger"},
     {OVRInput::Button::PrimaryThumbstick, "Thumbstick Click"},
     {OVRInput::Button::Start, "Menu Button"},
-    {OVRInput::Button::Four, "Y Button"},
-    {OVRInput::Button::Three, "X Button"},
+    {OVRInput::Button::One, "X Button"},
+    {OVRInput::Button::Two, "Y Button"}
 };
 
-std::unordered_map<int, std::string> getButtonNames() {
+std::map<int, std::string> getButtonNames() {
     return buttonNames;
 }
 

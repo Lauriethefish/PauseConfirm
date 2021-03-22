@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 // Include the modloader header, which allows us to tell the modloader which mod this is, and the version etc.
 #include "modloader/shared/modloader.hpp"
 
@@ -16,4 +18,4 @@ using namespace GlobalNamespace;
 Configuration& getConfig();
 Logger& getLogger();
 
-std::unordered_map<int, std::string> getButtonNames();
+std::map<int, std::string> getButtonNames();
